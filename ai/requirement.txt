@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+python-multipart
+hsemotion-onnx
+numpy
+opencv-python-headless<5
+vaderSentiment
+av

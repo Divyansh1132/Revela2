@@ -14,6 +14,7 @@ app.use('/uploads', express.static(UPLOAD_DIR));
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api', require('./routes/users'));
+app.use('/api', require('./routes/mood'));
 app.use('/api', require('./routes/posts'));
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));

@@ -4,6 +4,7 @@ const { requireAuth } = require('../auth');
 const { upload, removeFile } = require('../upload');
 const { toUser, getPost, listPosts } = require('../lib');
 
+const { rankReels, enqueueAnalysis } = require('./mood');
 const router = express.Router();
 router.use(requireAuth);
 
@@ -25,7 +26,7 @@ router.get('/explore', (req, res) => {
 
 // Reels: video posts only
 router.get('/reels', (req, res) => {
-  res.json(listPosts({ where: "p.media_type = 'video'", me: req.userId, before: req.query.before, limit: 8 }));
+  res.json(rankReels(req.userId, Number(req.query.before) || 0, 8));
 });
 
 router.post('/posts', upload.single('media'), (req, res) => {
@@ -35,6 +36,7 @@ router.post('/posts', upload.single('media'), (req, res) => {
   const info = db
     .prepare('INSERT INTO posts (user_id, caption, media_path, media_type) VALUES (?, ?, ?, ?)')
     .run(req.userId, caption, req.file.filename, type);
+    if (type === 'video') enqueueAnalysis(Number(info.lastInsertRowid)); // AI labels the reel in the background
   res.status(201).json({ post: getPost(info.lastInsertRowid, req.userId) });
 });
 

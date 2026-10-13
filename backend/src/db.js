@@ -9,7 +9,15 @@ const db = new DatabaseSync(path.join(dataDir, 'revela.db'));
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 
 const NOW = `(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`;
-
+const postCols = db.prepare('PRAGMA table_info(posts)').all().map((c) => c.name);
+for (const [name, ddl] of [
+  ['valence', 'REAL'],
+  ['arousal', 'REAL'],
+  ['mood_status', "TEXT NOT NULL DEFAULT 'none'"],
+  ['mood_json', 'TEXT'],
+]) {
+  if (!postCols.includes(name)) db.exec(`ALTER TABLE posts ADD COLUMN ${name} ${ddl}`);
+}
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,6 +65,17 @@ CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id, id DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_type ON posts(media_type, id DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id, id);
 CREATE INDEX IF NOT EXISTS idx_follows_following ON follows(following_id);
+
+CREATE TABLE IF NOT EXISTS user_mood (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  valence REAL NOT NULL,
+  arousal REAL NOT NULL,
+  samples INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL
+);
 `);
+
+db.exec("UPDATE posts SET mood_status = 'none' WHERE mood_status = 'analyzing'"); // interrupted by a restart
+
 
 module.exports = db;
